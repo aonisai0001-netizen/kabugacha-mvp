@@ -14,6 +14,10 @@
   
   <title>株ガチャ未来予測シミュレーター MVP</title>
 
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4916512793291121"
+     crossorigin="anonymous"></script>
+
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-8T8EFWZ2NY"></script>
   <script>
@@ -56,11 +60,19 @@
     
     .intro{
       background:var(--panel); border:1px solid rgba(255,255,255,.06); 
-      border-radius:14px; padding:16px; line-height:1.7;
+      border-radius:14px; padding:20px; line-height:1.7;
     }
-    .intro h2{margin-top:0; color:var(--accent);}
+    .intro h2{margin-top:0; margin-bottom:12px; color:var(--accent); font-size:20px;}
+    .intro h3{margin-top:16px; margin-bottom:8px; color:var(--cyan); font-size:16px;}
     .intro ul{margin:10px 0; padding-left:20px;}
-    .intro li{margin:8px 0;}
+    .intro li{margin:6px 0;}
+    .intro p{margin:10px 0;}
+    
+    .about-section{
+      background:var(--panel-2); border:1px solid rgba(255,255,255,.08);
+      border-radius:12px; padding:18px; margin-top:16px;
+      border-left:3px solid var(--accent);
+    }
     
     .controls{
       display:grid; grid-template-columns: 1fr 1fr; gap:8px;
@@ -127,7 +139,8 @@
     }
     .ads{
       background:#0a0f20; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px;
-      color:var(--muted); font-size:12px; text-align:center;
+      color:var(--muted); font-size:12px; text-align:center; min-height:90px;
+      display:flex; align-items:center; justify-content:center;
     }
     .ads strong{color:#d1d5db;}
     .note{
@@ -188,13 +201,27 @@
         <li><strong>3つのシナリオ：</strong> 楽観・現実・悲観で異なる未来を想定</li>
         <li><strong>10銘柄対応：</strong> AAPL、MSFT、NVDA、TSLAなど人気銘柄を収録</li>
       </ul>
-      <p class="note">※ 本ツールは娯楽・学習目的のシミュレーションです。実際の投資判断は自己責任で行ってください。</p>
+
+      <div class="about-section">
+        <h3>このサイトについて</h3>
+        <p>
+          当サイトは、株価データの過去推移と仮定シナリオをもとに、将来の株価レンジを簡易的にシミュレーションするためのエンタメツールです。
+          投資助言には該当せず、計算結果は予測を保証するものではありません。
+        </p>
+        <h3>使い方</h3>
+        <ul>
+          <li>① 時間軸を選ぶ（1年・3年・5年・10年）</li>
+          <li>② シナリオ（楽観 / 現実 / 悲観）を選ぶ</li>
+          <li>③ 「ガチャを回す」ボタンを押す</li>
+        </ul>
+      </div>
+
+      <p class="note" style="margin-top:12px;">※ 本ツールは娯楽・学習目的のシミュレーションです。実際の投資判断は自己責任で行ってください。</p>
     </section>
 
     <!-- 広告枠（上） -->
     <div class="ads">
-      <strong>広告枠（上）</strong><br/>
-      ※ ここに AdSense / アフィリエイト広告コードを貼り付け
+      <strong>広告枠（AdSense審査中）</strong>
     </div>
 
     <section class="controls">
@@ -244,8 +271,7 @@
 
     <!-- 広告枠（下） -->
     <div class="ads">
-      <strong>広告枠（下）</strong><br/>
-      ※ 結果の余韻の直後に当たる最重要枠
+      <strong>広告枠（AdSense審査中）</strong>
     </div>
 
     <div class="footer-links">
@@ -256,9 +282,6 @@
 
 <script>
 (() => {
-  // -----------------------------
-  // 1) 初期データ
-  // -----------------------------
   const TICKERS = [
     {symbol:"AAPL", name:"Apple", base:190},
     {symbol:"MSFT", name:"Microsoft", base:420},
@@ -272,7 +295,6 @@
     {symbol:"KO", name:"Coca-Cola", base:60},
   ];
 
-  // レア確率（固定）
   const RARITIES = [
     {key:"R",     label:"R",     prob:0.70, min:-10,  max:20,  cls:"R"},
     {key:"SR",    label:"SR",    prob:0.20, min:20,   max:100, cls:"SR"},
@@ -281,11 +303,8 @@
     {key:"SSR++", label:"SSR++", prob:0.005,min:1000, max:1600,cls:"SSRpp"}
   ];
 
-  const INVEST_YEN = 1_000_000; // 投資100万円想定
+  const INVEST_YEN = 1_000_000;
 
-  // -----------------------------
-  // 2) DOM
-  // -----------------------------
   const yearsEl = document.getElementById("years");
   const scenarioEl = document.getElementById("scenario");
   const rollBtn = document.getElementById("rollBtn");
@@ -301,10 +320,6 @@
   let lastShareText = "";
   let rollCount = Number(localStorage.getItem("rollCount") || 0);
 
-  // -----------------------------
-  // 3) ユーティリティ
-  // -----------------------------
-  const rnd = (min, max) => min + Math.random() * (max - min);
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
   function rollRarity(){
@@ -317,11 +332,10 @@
     return RARITIES[0];
   }
 
-  // シナリオで分布を歪める（範囲はレアに従う）
   function skewU(u, scenario){
-    if(scenario === "optimistic") return Math.sqrt(u); // 上振れ寄せ
-    if(scenario === "pessimistic") return u*u;        // 下振れ寄せ
-    return u;                                        // そのまま
+    if(scenario === "optimistic") return Math.sqrt(u);
+    if(scenario === "pessimistic") return u*u;
+    return u;
   }
 
   function formatPct(x){
@@ -345,9 +359,6 @@
     }
   }
 
-  // -----------------------------
-  // 4) 履歴
-  // -----------------------------
   function loadHistory(){
     try{
       return JSON.parse(localStorage.getItem("history") || "[]");
@@ -377,31 +388,23 @@
     }
   }
 
-  // -----------------------------
-  // 5) ガチャ本体
-  // -----------------------------
   function rollOnce(){
     const years = Number(yearsEl.value);
     const scenario = scenarioEl.value;
     const scenarioJP = scenario==="optimistic" ? "楽観" : scenario==="pessimistic" ? "悲観" : "現実";
 
     const ticker = pick(TICKERS);
-
-    // レア確率ロール
     const rarity = rollRarity();
 
-    // レア範囲内でリターンを作成（シナリオで歪める）
     let u = Math.random();
     u = skewU(u, scenario);
     let totalReturnPct = rarity.min + u*(rarity.max - rarity.min);
 
-    // 未来価格 / CAGR / 投資未来価値
     const basePrice = ticker.base;
     const futurePrice = basePrice*(1 + totalReturnPct/100);
     const cagrPct = calcCAGR(totalReturnPct, years);
     const investFutureYen = INVEST_YEN*(1 + totalReturnPct/100);
 
-    // 表示
     resultEl.innerHTML = `
       <div class="row">
         <div class="k">銘柄</div>
@@ -446,10 +449,8 @@
       </div>
     `;
 
-    // 射幸性演出
     flashByRarity(rarity.key);
 
-    // シェア文生成
     lastShareText = [
       `【株ガチャ結果】`,
       `${ticker.symbol} / ${years}年 / ${scenarioJP}`,
@@ -460,7 +461,6 @@
       `#株ガチャ #未来予測 #投資シミュレーション`
     ].join("\n");
 
-    // 履歴保存
     const h = loadHistory();
     h.unshift({
       symbol:ticker.symbol,
@@ -471,12 +471,10 @@
     saveHistory(h);
     renderHistory();
 
-    // 回数更新
     rollCount++;
     localStorage.setItem("rollCount", rollCount);
     rollCountEl.textContent = `総ガチャ回数: ${rollCount}`;
 
-    // GA4イベント送信
     if(typeof gtag !== 'undefined'){
       gtag('event', 'gacha_roll', {
         'ticker': ticker.symbol,
@@ -487,14 +485,10 @@
       });
     }
 
-    // ボタン一瞬ロック（連打防止）
     rollBtn.disabled = true;
     setTimeout(()=>rollBtn.disabled=false, 350);
   }
 
-  // -----------------------------
-  // 6) シェア
-  // -----------------------------
   function shareX(){
     if(!lastShareText) return;
     const url = encodeURIComponent(location.href);
@@ -522,15 +516,11 @@
     }
   }
 
-  // -----------------------------
-  // 7) イベント
-  // -----------------------------
   rollBtn.addEventListener("click", rollOnce);
   shareXBtn.addEventListener("click", shareX);
   shareLineBtn.addEventListener("click", shareLine);
   copyTextBtn.addEventListener("click", copyText);
 
-  // 初期表示
   rollCountEl.textContent = `総ガチャ回数: ${rollCount}`;
   renderHistory();
 })();
