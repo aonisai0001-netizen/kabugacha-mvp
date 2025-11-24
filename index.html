@@ -3,18 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8T8EFW2ZNY"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-8T8EFW2ZNY');
-  </script>
-
   <title>株ガチャ未来予測シミュレーター MVP</title>
-
   <style>
     :root{
       --bg:#0b0f1a;
@@ -88,10 +77,14 @@
     .SSR{background:rgba(255,209,102,.12); color:var(--gold);}
     .SSRp{background:rgba(255,122,182,.12); color:var(--pink);}
     .SSRpp{background:rgba(124,92,255,.16); color:#c4b5fd;}
-    .big{font-size:22px; font-weight:900;}
+    .big{
+      font-size:22px; font-weight:900;
+    }
     .pos{color:var(--good);}
     .neg{color:var(--bad);}
-    .share{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;}
+    .share{
+      display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;
+    }
     .share button{
       background:#0b1022; border:1px solid rgba(255,255,255,.12); font-weight:700;
     }
@@ -113,6 +106,7 @@
       font-size:12px; color:var(--muted); line-height:1.6;
       background:transparent; padding:0 4px;
     }
+    /* confetti */
     .confetti{
       position:absolute; inset:-20% -10% auto -10%; height:140%;
       pointer-events:none; opacity:0; transition:opacity .2s ease;
@@ -131,6 +125,7 @@
       0%{transform:translateY(-10%) rotate(0deg);}
       100%{transform:translateY(10%) rotate(10deg);}
     }
+
     @media (max-width:720px){
       .controls{grid-template-columns:1fr;}
       .share{grid-template-columns:1fr;}
@@ -148,6 +143,7 @@
       <div class="sub" id="rollCount">総ガチャ回数: 0</div>
     </header>
 
+    <!-- 広告枠（上） -->
     <div class="ads">
       <strong>広告枠（上）</strong><br/>
       ※ ここに AdSense / アフィ広告コードを貼り付け
@@ -175,6 +171,7 @@
 
     <section class="gacha-area">
       <div class="confetti" id="confetti"></div>
+
       <button class="roll-btn" id="rollBtn">ガチャを回す</button>
 
       <div class="result" id="result">
@@ -197,344 +194,295 @@
       <div id="historyList"></div>
     </section>
 
+    <!-- 広告枠（下） -->
     <div class="ads">
       <strong>広告枠（下）</strong><br/>
       ※ 結果の余韻の直後に当たる最重要枠
     </div>
 
     <div class="note">
-      免責:本ツールは娯楽・学習目的のシミュレーションです。投資判断は自己責任で行ってください。
+      免責：本ツールは娯楽・学習目的のシミュレーションです。投資判断は自己責任で行ってください。
     </div>
   </div>
 
-  <script>
-  (() => {
-    const stocks = [
-      {symbol:"AAPL",name:"Apple",base:190},
-      {symbol:"MSFT",name:"Microsoft",base:420},
-      {symbol:"AMZN",name:"Amazon",base:170},
-      {symbol:"NVDA",name:"NVIDIA",base:140},
-      {symbol:"TSLA",name:"Tesla",base:250},
-      {symbol:"GOOG",name:"Alphabet",base:175},
-      {symbol:"META",name:"Meta",base:500},
-      {symbol:"V",name:"Visa",base:280},
-      {symbol:"JPM",name:"JPMorgan",base:210},
-      {symbol:"KO",name:"Coca-Cola",base:60}
-    ];
-
-    const rarities = [
-      {key:"R",label:"R",prob:0.7,min:-10,max:20,cls:"R"},
-      {key:"SR",label:"SR",prob:0.2,min:20,max:100,cls:"SR"},
-      {key:"SSR",label:"SSR",prob:0.08,min:100,max:300,cls:"SSR"},
-      {key:"SSR+",label:"SSR+",prob:0.015,min:300,max:1000,cls:"SSRp"},
-      {key:"SSR++",label:"SSR++",prob:0.005,min:1000,max:1600,cls:"SSRpp"}
-    ];
-
-    const yearsEl = document.getElementById("years");
-    const scenarioEl = document.getElementById("scenario");
-    const rollBtn = document.getElementById("rollBtn");
-    const resultEl = document.getElementById("result");
-    const historyListEl = document.getElementById("historyList");
-    const rollCountEl = document.getElementById("rollCount");
-    const confettiEl = document.getElementById("confetti");
-    const shareXBtn = document.getElementById("shareX");
-    const shareLineBtn = document.getElementById("shareLine");
-    const copyTextBtn = document.getElementById("copyText");
-
-    let shareText = "";
-    let rollCount = Number(localStorage.getItem("rollCount") || 0);
-
-    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-
-    function pickRarity() {
-      const r = Math.random();
-      let acc = 0;
-      for (const item of rarities) {
-        acc += item.prob;
-        if (r <= acc) return item;
-      }
-      return rarities[0];
-    }
-
-    function loadHistory() {
-      try {
-        return JSON.parse(localStorage.getItem("history") || "[]");
-      } catch {
-        return [];
-      }
-    }
-
-    function saveHistory(list) {
-      localStorage.setItem("history", JSON.stringify(list.slice(0, 10)));
-    }
-
-    function fmtPct(x){
-      return (x >= 0 ? "+" : "") + x.toFixed(1) + "%";
-    }
-
-    function fmtYen(x){
-      return x.toLocaleString("ja-JP");
-    }
-
-    function renderHistory() {
-      const hist = loadHistory();
-      historyListEl.innerHTML = "";
-      if (!hist.length) {
-        historyListEl.innerHTML = '<div class="note">まだ履歴がありません。</div>';
-        return;
-      }
-      for (const h of hist) {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `
-          <div>
-            <strong>${h.rarity}</strong> ${h.symbol}
-            <span style="color:var(--muted)">(${h.years}年/${h.scenarioJP})</span>
-          </div>
-          <div class="${h.totalReturnPct>=0 ? "pos":"neg"}">${fmtPct(h.totalReturnPct)}</div>
-        `;
-        historyListEl.appendChild(div);
-      }
-    }
-
-    function showConfetti(rarityKey){
-      confettiEl.classList.remove("show");
-      if (rarityKey === "SSR+" || rarityKey === "SSR++") {
-        confettiEl.classList.add("show");
-        setTimeout(() => confettiEl.classList.remove("show"), 1400);
-      }
-    }
-
-    function roll() {
-      const years = Number(yearsEl.value);
-      const scenario = scenarioEl.value;
-      const scenarioJP =
-        scenario === "optimistic" ? "楽観" :
-        scenario === "pessimistic" ? "悲観" : "現実";
-
-      const stock = pick(stocks);
-      const rarity = pickRarity();
-
-      let u = Math.random();
-      u = (scenario === "optimistic") ? Math.sqrt(u)
-        : (scenario === "pessimistic") ? u*u
-        : u;
-
-      const totalReturnPct = rarity.min + u * (rarity.max - rarity.min);
-
-      const currentPrice = stock.base;
-      const futurePrice = currentPrice * (1 + totalReturnPct/100);
-
-      const cagrPct = 100 * (Math.pow(1 + totalReturnPct/100, 1/years) - 1);
-      const futureValueYen = 1_000_000 * (1 + totalReturnPct/100);
-
-      resultEl.innerHTML = `
-        <div class="row">
-          <div class="k">銘柄</div>
-          <div class="v big">${stock.symbol}
-            <span style="font-size:12px;color:var(--muted);font-weight:600;">${stock.name}</span>
-          </div>
-        </div>
-        <div class="row">
-          <div class="k">時間軸 / シナリオ</div>
-          <div class="v">${years}年 / ${scenarioJP}</div>
-        </div>
-        <div class="row">
-          <div class="k">レアリティ</div>
-          <div class="v"><span class="rarity-badge ${rarity.cls}">${rarity.label}</span></div>
-        </div>
-
-        <hr style="border:0;border-top:1px solid rgba(255,255,255,.06)"/>
-
-        <div class="row">
-          <div class="k">想定現在株価（仮）</div>
-          <div class="v">$${currentPrice.toFixed(2)}</div>
-        </div>
-        <div class="row">
-          <div class="k">想定未来株価</div>
-          <div class="v">$${futurePrice.toFixed(2)}</div>
-        </div>
-        <div class="row">
-          <div class="k">トータルリターン</div>
-          <div class="v ${totalReturnPct>=0 ? "pos":"neg"}">${fmtPct(totalReturnPct)}</div>
-        </div>
-        <div class="row">
-          <div class="k">CAGR（年平均）</div>
-          <div class="v ${cagrPct>=0 ? "pos":"neg"}">${fmtPct(cagrPct)}</div>
-        </div>
-        <div class="row">
-          <div class="k">投資100万円の未来価値</div>
-          <div class="v">${fmtYen(Math.round(futureValueYen))} 円</div>
-        </div>
-
-        <div class="note" style="margin-top:6px;">
-          ※ レア確率に基づく"運試しシミュレーション"。現実の株価とは無関係です。
-        </div>
-      `;
-
-      showConfetti(rarity.key);
-
-      shareText = [
-        "【株ガチャ結果】",
-        `${stock.symbol} / ${years}年 / ${scenarioJP}`,
-        `レア: ${rarity.label}`,
-        `未来リターン: ${fmtPct(totalReturnPct)}`,
-        `CAGR: ${fmtPct(cagrPct)}`,
-        `投資100万→ ${fmtYen(Math.round(futureValueYen))}円`,
-        "#株ガチャ #未来予測 #投資シミュレーション"
-      ].join("\n");
-
-      const hist = loadHistory();
-      hist.unshift({
-        symbol: stock.symbol,
-        years,
-        scenarioJP,
-        rarity: rarity.label,
-        totalReturnPct
-      });
-      saveHistory(hist);
-      renderHistory();
-
-      rollCount++;
-      localStorage.setItem("rollCount", rollCount);
-      rollCountEl.textContent = `総ガチャ回数: ${rollCount}`;
-
-      rollBtn.disabled = true;
-      setTimeout(() => rollBtn.disabled = false, 350);
-    }
-
-    rollBtn.addEventListener("click", roll);
-
-    shareXBtn.addEventListener("click", () => {
-      if(!shareText) return;
-      const url = encodeURIComponent(location.href);
-      const text = encodeURIComponent(shareText);
-      window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
-    });
-
-    shareLineBtn.addEventListener("click", () => {
-      if(!shareText) return;
-      const url = encodeURIComponent(location.href);
-      const text = encodeURIComponent(shareText);
-      window.open(`https://social-plugins.line.me/lineit/share?url=${url}&text=${text}`, "_blank");
-    });
-
-    copyTextBtn.addEventListener("click", async () => {
-      if(!shareText) return;
-      try{
-        await navigator.clipboard.writeText(shareText);
-        copyTextBtn.textContent = "コピーしました";
-        setTimeout(() => copyTextBtn.textContent = "結果文をコピー", 1200);
-      }catch{
-        alert("コピーに失敗しました。手動で選択してください。");
-      }
-    });
-
-    // 初期表示
-    rollCountEl.textContent = `総ガチャ回数: ${rollCount}`;
-    renderHistory();
-  })();
-  </script>
-</body>
-</html>      align-items:center;
-    }
-    .ads{
-      background:#0a0f20; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px;
-      color:var(--muted); font-size:12px; text-align:center;
-    }
-    .ads strong{color:#d1d5db;}
-    .note{
-      font-size:12px; color:var(--muted); line-height:1.6;
-      background:transparent; padding:0 4px;
-    }
-    .confetti{
-      position:absolute; inset:-20% -10% auto -10%; height:140%;
-      pointer-events:none; opacity:0; transition:opacity .2s ease;
-      background:
-        radial-gradient(6px 10px at 10% 10%, #fff 40%, transparent 41%),
-        radial-gradient(6px 10px at 30% 20%, #67e8f9 40%, transparent 41%),
-        radial-gradient(6px 10px at 60% 30%, #ffd166 40%, transparent 41%),
-        radial-gradient(6px 10px at 80% 10%, #ff7ab6 40%, transparent 41%),
-        radial-gradient(6px 10px at 20% 60%, #a78bfa 40%, transparent 41%),
-        radial-gradient(6px 10px at 70% 70%, #34d399 40%, transparent 41%);
-      animation: fall 1.6s linear infinite;
-      mix-blend-mode: screen;
-    }
-    .confetti.show{opacity:.9;}
-    @keyframes fall{
-      0%{transform:translateY(-10%) rotate(0deg);}
-      100%{transform:translateY(10%) rotate(10deg);}
-    }
-    @media (max-width:720px){
-      .controls{grid-template-columns:1fr;}
-      .share{grid-template-columns:1fr;}
-      header{position:static;}
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <header>
-      <div>
-        <div class="title">株ガチャ 未来予測シミュレーター</div>
-        <div class="sub">ワンタップで運試し → 未来株価とレア度が出るMVP</div>
-      </div>
-      <div class="sub" id="rollCount">総ガチャ回数: 0</div>
-    </header>
-    <div class="ads">
-      <strong>広告枠（上）</strong><br/>
-      ※ ここに AdSense / アフィ広告コードを貼り付け
-    </div>
-    <section class="controls">
-      <div class="control">
-        <label>時間軸</label>
-        <select id="years">
-          <option value="1">1年</option>
-          <option value="3">3年</option>
-          <option value="5">5年</option>
-          <option value="10" selected>10年</option>
-        </select>
-      </div>
-      <div class="control">
-        <label>シナリオ</label>
-        <select id="scenario">
-          <option value="optimistic">楽観</option>
-          <option value="realistic" selected>現実</option>
-          <option value="pessimistic">悲観</option>
-        </select>
-      </div>
-    </section>
-    <section class="gacha-area">
-      <div class="confetti" id="confetti"></div>
-      <button class="roll-btn" id="rollBtn">ガチャを回す</button>
-      <div class="result" id="result">
-        <div class="note">「回す」を押すと、銘柄・未来価格・CAGR・レア度が一発で出ます。</div>
-      </div>
-      <div class="share">
-        <button id="shareX">Xでシェア</button>
-        <button id="shareLine">LINEでシェア</button>
-        <button id="copyText">結果文をコピー</button>
-      </div>
-      <div class="note" id="hint">
-        SSR+ 以上が出たらスクショ推奨。何回でも回せます。
-      </div>
-    </section>
-    <section class="history">
-      <div class="title" style="font-weight:800;">直近の履歴（最大10件）</div>
-      <div id="historyList"></div>
-    </section>
-    <div class="ads">
-      <strong>広告枠（下）</strong><br/>
-      ※ 結果の余韻の直後に当たる最重要枠
-    </div>
-    <div class="note">
-      免責:本ツールは娯楽・学習目的のシミュレーションです。投資判断は自己責任で行ってください。
-    </div>
-  </div>
 <script>
-(()=>{const e=[{symbol:"AAPL",name:"Apple",base:190},{symbol:"MSFT",name:"Microsoft",base:420},{symbol:"AMZN",name:"Amazon",base:170},{symbol:"NVDA",name:"NVIDIA",base:140},{symbol:"TSLA",name:"Tesla",base:250},{symbol:"GOOG",name:"Alphabet",base:175},{symbol:"META",name:"Meta",base:500},{symbol:"V",name:"Visa",base:280},{symbol:"JPM",name:"JPMorgan",base:210},{symbol:"KO",name:"Coca-Cola",base:60}],t=[{key:"R",label:"R",prob:.7,min:-10,max:20,cls:"R"},{key:"SR",label:"SR",prob:.2,min:20,max:100,cls:"SR"},{key:"SSR",label:"SSR",prob:.08,min:100,max:300,cls:"SSR"},{key:"SSR+",label:"SSR+",prob:.015,min:300,max:1e3,cls:"SSRp"},{key:"SSR++",label:"SSR++",prob:.005,min:1e3,max:1600,cls:"SSRpp"}],l=document.getElementById("years"),a=document.getElementById("scenario"),n=document.getElementById("rollBtn"),s=document.getElementById("result"),o=document.getElementById("historyList"),r=document.getElementById("rollCount"),c=document.getElementById("confetti"),i=document.getElementById("shareX"),u=document.getElementById("shareLine"),d=document.getElementById("copyText");let b="",p=Number(localStorage.getItem("rollCount")||0);const m=e=>e[Math.floor(Math.random()*e.length)];function y(){const e=Math.random();let l=0;for(const a of t)if(l+=a.prob,e<=l)return a;return t[0]}function h(e){const t=g();if(o.innerHTML="",!t.length)return void(o.innerHTML='<div class="note">まだ履歴がありません。</div>');for(const e of t){const t=document.createElement("div");t.className="item",t.innerHTML=`\n        <div>\n          <strong>${e.rarity}</strong> ${e.symbol}\n          <span style="color:var(--muted)">(${e.years}年/${e.scenarioJP})</span>\n        </div>\n        <div class="${e.totalReturnPct>=0?"pos":"neg"}">${f(e.totalReturnPct)}</div>\n      `,o.appendChild(t)}}function f(e){return(e>=0?"+":"")+e.toFixed(1)+"%"}function g(){try{return JSON.parse(localStorage.getItem("history")||"[]")}catch(e){return[]}}function v(){const t=Number(l.value),n=a.value,o="optimistic"===n?"楽観":"pessimistic"===n?"悲観":"現実",r=m(e),i=y();let u=Math.random();u=function(e,t){return"optimistic"===t?Math.sqrt(e):"pessimistic"===t?e*e:e}(u,n);let d=i.min+u*(i.max-i.min);const v=r.base,k=v*(1+d/100),L=function(e,t){return 100*(Math.pow(1+e/100,1/t)-1)}(d,t),M=1e6*(1+d/100);s.innerHTML=`\n      <div class="row">\n        <div class="k">銘柄</div>\n        <div class="v big">${r.symbol} <span style="font-size:12px;color:var(--muted);font-weight:600;">${r.name}</span></div>\n      </div>\n      <div class="row">\n        <div class="k">時間軸 / シナリオ</div>\n        <div class="v">${t}年 / ${o}</div>\n      </div>\n      <div class="row">\n        <div class="k">レアリティ</div>\n        <div class="v">\n          <span class="rarity-badge ${i.cls}">${i.label}</span>\n        </div>\n      </div>\n\n      <hr style="border:0;border-top:1px solid rgba(255,255,255,.06)"/>\n\n      <div class="row">\n        <div class="k">想定現在株価（仮）</div>\n        <div class="v">$${v.toFixed(2)}</div>\n      </div>\n      <div class="row">\n        <div class="k">想定未来株価</div>\n        <div class="v">$${k.toFixed(2)}</div>\n      </div>\n      <div class="row">\n        <div class="k">トータルリターン</div>\n        <div class="v ${d>=0?"pos":"neg"}">${f(d)}</div>\n      </div>\n      <div class="row">\n        <div class="k">CAGR（年平均）</div>\n        <div class="v ${L>=0?"pos":"neg"}">${f(L)}</div>\n      </div>\n      <div class="row">\n        <div class="k">投資100万円の未来価値</div>\n        <div class="v">${w(Math.round(M))} 円</div>\n      </div>\n\n      <div class="note" style="margin-top:6px;">\n        ※ レア確率に基づく"運試しシミュレーション"。現実の株価とは無関係です。\n      </div>\n    `,function(e){c.classList.remove("show"),"SSR+"!==e&&"SSR++"!==e||(c.classList.add("show"),setTimeout((()=>c.classList.remove("show")),1400))}(i.key),b=[`【株ガチャ結果】`,`${r.symbol} / ${t}年 / ${o}`,`レア: ${i.label}`,`未来リターン: ${f(d)}`,`CAGR: ${f(L)}`,`投資100万→ ${w(Math.round(M))}円`,`#株ガチャ #未来予測 #投資シミュレーション`].join("\n");const S=g();S.unshift({symbol:r.symbol,years:t,scenarioJP:o,rarity:i.label,totalReturnPct:d}),function(e){localStorage.setItem("history",JSON.stringify(e.slice(0,10)))}(S),h(),p++,localStorage.setItem("rollCount",p),x.textContent=`総ガチャ回数: ${p}`,n.disabled=!0,setTimeout((()=>n.disabled=!1),350)}function w(e){return e.toLocaleString("ja-JP")}n.addEventListener("click",v),i.addEventListener("click",(function(){if(!b)return;const e=encodeURIComponent(location.href),t=encodeURIComponent(b);window.open(`https://twitter.com/intent/tweet?text=${t}&url=${e}`,"_blank")})),u.addEventListener("click",(function(){if(!b)return;const e=encodeURIComponent(location.href),t=encodeURIComponent(b);window.open(`https://social-plugins.line.me/lineit/share?url=${e}&text=${t}`,"_blank")})),d.addEventListener("click",(async function(){if(!b)return;try{await navigator.clipboard.writeText(b),d.textContent="コピーしました",setTimeout((()=>d.textContent="結果文をコピー"),1200)}catch(e){alert("コピーに失敗しました。手動で選択してください。")}})),r.textContent=`総ガチャ回数: ${p}`,h()})();
+(() => {
+  // -----------------------------
+  // 1) 初期データ
+  // -----------------------------
+  const TICKERS = [
+    {symbol:"AAPL", name:"Apple", base:190},
+    {symbol:"MSFT", name:"Microsoft", base:420},
+    {symbol:"AMZN", name:"Amazon", base:170},
+    {symbol:"NVDA", name:"NVIDIA", base:140},
+    {symbol:"TSLA", name:"Tesla", base:250},
+    {symbol:"GOOG", name:"Alphabet", base:175},
+    {symbol:"META", name:"Meta", base:500},
+    {symbol:"V", name:"Visa", base:280},
+    {symbol:"JPM", name:"JPMorgan", base:210},
+    {symbol:"KO", name:"Coca-Cola", base:60},
+  ];
+
+  // レア確率（固定）
+  const RARITIES = [
+    {key:"R",     label:"R",     prob:0.70, min:-10,  max:20,  cls:"R"},
+    {key:"SR",    label:"SR",    prob:0.20, min:20,   max:100, cls:"SR"},
+    {key:"SSR",   label:"SSR",   prob:0.08, min:100,  max:300, cls:"SSR"},
+    {key:"SSR+",  label:"SSR+",  prob:0.015,min:300,  max:1000,cls:"SSRp"},
+    {key:"SSR++", label:"SSR++", prob:0.005,min:1000, max:1600,cls:"SSRpp"} // 上限は演出用
+  ];
+
+  const INVEST_YEN = 1_000_000; // 投資100万円想定
+
+  // -----------------------------
+  // 2) DOM
+  // -----------------------------
+  const yearsEl = document.getElementById("years");
+  const scenarioEl = document.getElementById("scenario");
+  const rollBtn = document.getElementById("rollBtn");
+  const resultEl = document.getElementById("result");
+  const historyListEl = document.getElementById("historyList");
+  const rollCountEl = document.getElementById("rollCount");
+  const confettiEl = document.getElementById("confetti");
+
+  const shareXBtn = document.getElementById("shareX");
+  const shareLineBtn = document.getElementById("shareLine");
+  const copyTextBtn = document.getElementById("copyText");
+
+  let lastShareText = "";
+  let rollCount = Number(localStorage.getItem("rollCount") || 0);
+
+  // -----------------------------
+  // 3) ユーティリティ
+  // -----------------------------
+  const rnd = (min, max) => min + Math.random() * (max - min);
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  function rollRarity(){
+    const r = Math.random();
+    let acc = 0;
+    for(const it of RARITIES){
+      acc += it.prob;
+      if(r <= acc) return it;
+    }
+    return RARITIES[0];
+  }
+
+  // シナリオで分布を歪める（範囲はレアに従う）
+  function skewU(u, scenario){
+    if(scenario === "optimistic") return Math.sqrt(u); // 上振れ寄せ
+    if(scenario === "pessimistic") return u*u;        // 下振れ寄せ
+    return u;                                        // そのまま
+  }
+
+  function formatPct(x){
+    const sign = x >= 0 ? "+" : "";
+    return sign + x.toFixed(1) + "%";
+  }
+  function formatNum(x){
+    return x.toLocaleString("ja-JP");
+  }
+
+  function calcCAGR(totalReturnPct, years){
+    const m = 1 + totalReturnPct/100;
+    return (Math.pow(m, 1/years) - 1) * 100;
+  }
+
+  function rarityFromReturn(pct){
+    // 念のため表示用に逆算（主ロジックは確率ロール）
+    if(pct >= 1000) return "SSR++";
+    if(pct >= 300)  return "SSR+";
+    if(pct >= 100)  return "SSR";
+    if(pct >= 20)   return "SR";
+    return "R";
+  }
+
+  function flashByRarity(rarityKey){
+    confettiEl.classList.remove("show");
+    if(rarityKey === "SSR+" || rarityKey === "SSR++"){
+      confettiEl.classList.add("show");
+      setTimeout(()=>confettiEl.classList.remove("show"), 1400);
+    }
+  }
+
+  // -----------------------------
+  // 4) 履歴
+  // -----------------------------
+  function loadHistory(){
+    try{
+      return JSON.parse(localStorage.getItem("history") || "[]");
+    }catch{ return []; }
+  }
+  function saveHistory(h){
+    localStorage.setItem("history", JSON.stringify(h.slice(0,10)));
+  }
+  function renderHistory(){
+    const h = loadHistory();
+    historyListEl.innerHTML = "";
+    if(!h.length){
+      historyListEl.innerHTML = `<div class="note">まだ履歴がありません。</div>`;
+      return;
+    }
+    for(const item of h){
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        <div>
+          <strong>${item.rarity}</strong> ${item.symbol}
+          <span style="color:var(--muted)">(${item.years}年/${item.scenarioJP})</span>
+        </div>
+        <div class="${item.totalReturnPct>=0?'pos':'neg'}">${formatPct(item.totalReturnPct)}</div>
+      `;
+      historyListEl.appendChild(div);
+    }
+  }
+
+  // -----------------------------
+  // 5) ガチャ本体
+  // -----------------------------
+  function rollOnce(){
+    const years = Number(yearsEl.value);
+    const scenario = scenarioEl.value;
+    const scenarioJP = scenario==="optimistic" ? "楽観" : scenario==="pessimistic" ? "悲観" : "現実";
+
+    const ticker = pick(TICKERS);
+
+    // レア確率ロール
+    const rarity = rollRarity();
+
+    // レア範囲内でリターンを作成（シナリオで歪める）
+    let u = Math.random();
+    u = skewU(u, scenario);
+    let totalReturnPct = rarity.min + u*(rarity.max - rarity.min);
+
+    // 未来価格 / CAGR / 投資未来価値
+    const basePrice = ticker.base;
+    const futurePrice = basePrice*(1 + totalReturnPct/100);
+    const cagrPct = calcCAGR(totalReturnPct, years);
+    const investFutureYen = INVEST_YEN*(1 + totalReturnPct/100);
+
+    // 表示
+    resultEl.innerHTML = `
+      <div class="row">
+        <div class="k">銘柄</div>
+        <div class="v big">${ticker.symbol} <span style="font-size:12px;color:var(--muted);font-weight:600;">${ticker.name}</span></div>
+      </div>
+      <div class="row">
+        <div class="k">時間軸 / シナリオ</div>
+        <div class="v">${years}年 / ${scenarioJP}</div>
+      </div>
+      <div class="row">
+        <div class="k">レアリティ</div>
+        <div class="v">
+          <span class="rarity-badge ${rarity.cls}">${rarity.label}</span>
+        </div>
+      </div>
+
+      <hr style="border:0;border-top:1px solid rgba(255,255,255,.06)"/>
+
+      <div class="row">
+        <div class="k">想定現在株価（仮）</div>
+        <div class="v">$${basePrice.toFixed(2)}</div>
+      </div>
+      <div class="row">
+        <div class="k">想定未来株価</div>
+        <div class="v">$${futurePrice.toFixed(2)}</div>
+      </div>
+      <div class="row">
+        <div class="k">トータルリターン</div>
+        <div class="v ${totalReturnPct>=0?'pos':'neg'}">${formatPct(totalReturnPct)}</div>
+      </div>
+      <div class="row">
+        <div class="k">CAGR（年平均）</div>
+        <div class="v ${cagrPct>=0?'pos':'neg'}">${formatPct(cagrPct)}</div>
+      </div>
+      <div class="row">
+        <div class="k">投資100万円の未来価値</div>
+        <div class="v">${formatNum(Math.round(investFutureYen))} 円</div>
+      </div>
+
+      <div class="note" style="margin-top:6px;">
+        ※ レア確率に基づく“運試しシミュレーション”。現実の株価とは無関係です。
+      </div>
+    `;
+
+    // 射幸性演出
+    flashByRarity(rarity.key);
+
+    // シェア文生成
+    lastShareText = [
+      `【株ガチャ結果】`,
+      `${ticker.symbol} / ${years}年 / ${scenarioJP}`,
+      `レア: ${rarity.label}`,
+      `未来リターン: ${formatPct(totalReturnPct)}`,
+      `CAGR: ${formatPct(cagrPct)}`,
+      `投資100万→ ${formatNum(Math.round(investFutureYen))}円`,
+      `#株ガチャ #未来予測 #投資シミュレーション`
+    ].join("\n");
+
+    // 履歴保存
+    const h = loadHistory();
+    h.unshift({
+      symbol:ticker.symbol,
+      years, scenarioJP,
+      rarity:rarity.label,
+      totalReturnPct
+    });
+    saveHistory(h);
+    renderHistory();
+
+    // 回数更新
+    rollCount++;
+    localStorage.setItem("rollCount", rollCount);
+    rollCountEl.textContent = `総ガチャ回数: ${rollCount}`;
+
+    // ボタン一瞬ロック（連打防止）
+    rollBtn.disabled = true;
+    setTimeout(()=>rollBtn.disabled=false, 350);
+  }
+
+  // -----------------------------
+  // 6) シェア
+  // -----------------------------
+  function shareX(){
+    if(!lastShareText) return;
+    const url = encodeURIComponent(location.href);
+    const text = encodeURIComponent(lastShareText);
+    const intent = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+    window.open(intent, "_blank");
+  }
+
+  function shareLine(){
+    if(!lastShareText) return;
+    const url = encodeURIComponent(location.href);
+    const text = encodeURIComponent(lastShareText);
+    const line = `https://social-plugins.line.me/lineit/share?url=${url}&text=${text}`;
+    window.open(line, "_blank");
+  }
+
+  async function copyText(){
+    if(!lastShareText) return;
+    try{
+      await navigator.clipboard.writeText(lastShareText);
+      copyTextBtn.textContent = "コピーしました";
+      setTimeout(()=>copyTextBtn.textContent="結果文をコピー", 1200);
+    }catch{
+      alert("コピーに失敗しました。手動で選択してください。");
+    }
+  }
+
+  // -----------------------------
+  // 7) イベント
+  // -----------------------------
+  rollBtn.addEventListener("click", rollOnce);
+  shareXBtn.addEventListener("click", shareX);
+  shareLineBtn.addEventListener("click", shareLine);
+  copyTextBtn.addEventListener("click", copyText);
+
+  // 初期表示
+  rollCountEl.textContent = `総ガチャ回数: ${rollCount}`;
+  renderHistory();
+})();
 </script>
 </body>
-
 </html>
-
