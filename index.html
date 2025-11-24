@@ -2,448 +2,133 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="株ガチャ未来予測シミュレーター - ワンタップで未来のリターンをガチャ形式で確認！" />
 
-  <!-- Consent モード許可（GA4動作に必須） -->
+  <!-- OGP -->
+  <meta property="og:title" content="株ガチャ未来予測シミュレーター" />
+  <meta property="og:description" content="ワンタップで株の未来リターンをガチャ形式で占う新感覚ツール" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://kabugacha-mvp.vercel.app/" />
+  <meta property="og:image" content="https://kabugacha-mvp.vercel.app/ogp.png" />
+
+  <title>株ガチャ未来予測シミュレーター</title>
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8T8EFW2ZNY"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    gtag('consent', 'default', {
-      'analytics_storage': 'granted'
-    });
-  </script>
-
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8T8EFW2ZNY"></script>
-  <script>
     gtag('js', new Date());
     gtag('config', 'G-8T8EFW2ZNY');
   </script>
 
-  <title>株ガチャ 未来予測シミュレーター MVP</title>
-
   <style>
-    :root{
-      --bg:#0b0f1a;
-      --panel:#12172a;
-      --panel-2:#0f1324;
-      --text:#e6e9f2;
-      --muted:#9aa3b2;
-      --accent:#7c5cff;
-      --good:#32d583;
-      --warn:#f79009;
-      --bad:#ff6b6b;
-      --gold:#ffd166;
-      --pink:#ff7ab6;
-      --cyan:#67e8f9;
+    body {
+      background: #0b0f1a;
+      color: #e6e9f2;
+      font-family: system-ui;
+      margin: 0;
+      padding: 0;
     }
-    *{box-sizing:border-box;}
-    body{
-      margin:0; background:radial-gradient(1200px 600px at 50% -10%, #1e2440, var(--bg));
-      color:var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      min-height:100vh; display:flex; justify-content:center; padding:16px;
+    .ad-box {
+      width: 100%;
+      height: 250px;
+      background: #222;
+      margin: 20px 0;
+      border-radius: 10px;
+      color: #aaa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
     }
-    .wrap{width:min(980px, 100%); display:grid; gap:12px;}
-
-    header{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      padding:12px 14px; background:linear-gradient(180deg, #151b33, #0e1224);
-      border:1px solid rgba(255,255,255,.06); border-radius:14px;
-      position:sticky; top:0; z-index:5; backdrop-filter: blur(6px);
+    .container {
+      padding: 20px;
     }
-    header .title{font-weight:800; letter-spacing:.02em;}
-    header .sub{font-size:12px; color:var(--muted);}
-
-    .controls{
-      display:grid; grid-template-columns: 1fr 1fr; gap:8px;
-      background:var(--panel); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:12px;
-    }
-    .control{
-      background:var(--panel-2); border:1px solid rgba(255,255,255,.06);
-      padding:10px; border-radius:12px; display:grid; gap:6px;
-    }
-    label{font-size:12px; color:var(--muted);}
-    select, button{
-      width:100%; font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
-      background:#0b1022; color:var(--text);
-      outline:none;
-    }
-    button{cursor:pointer;}
-
-    .gacha-area{
-      background:var(--panel); border:1px solid rgba(255,255,255,.06); border-radius:18px;
-      padding:16px; display:grid; gap:12px; position:relative; overflow:hidden;
-    }
-    .roll-btn{
-      font-size:20px; font-weight:800; padding:16px;
-      background:linear-gradient(135deg, #7c5cff, #34d399);
-      border:none; box-shadow:0 8px 22px rgba(124,92,255,.35);
-      transition:transform .06s ease, filter .2s ease;
-    }
-    .roll-btn:active{transform:translateY(2px) scale(0.98);}
-
-    .result{
-      background:#0a0f20; border:1px dashed rgba(255,255,255,.12); border-radius:14px;
-      padding:14px; display:grid; gap:8px; min-height:160px;
-    }
-
-    .row{display:flex; justify-content:space-between; gap:8px;}
-    .k{color:var(--muted); font-size:13px;}
-    .v{font-weight:700;}
-
-    .rarity-badge{
-      display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; font-weight:900; letter-spacing:.06em;
-      border:1px solid rgba(255,255,255,.18);
-      text-shadow:0 0 8px rgba(255,255,255,.35);
-    }
-    .R{background:rgba(154,163,178,.12); color:#c8ceda;}
-    .SR{background:rgba(103,232,249,.12); color:var(--cyan);}
-    .SSR{background:rgba(255,209,102,.12); color:var(--gold);}
-    .SSRp{background:rgba(255,122,182,.12); color:var(--pink);}
-    .SSRpp{background:rgba(124,92,255,.16); color:#c4b5fd;}
-
-    .big{font-size:22px; font-weight:900;}
-    .pos{color:var(--good);}
-    .neg{color:var(--bad);}
-
-    .share{
-      display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;
-    }
-    .share button{
-      background:#0b1022; border:1px solid rgba(255,255,255,.12); font-weight:700;
-    }
-
-    .history{
-      background:var(--panel); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:12px;
-      display:grid; gap:8px;
-    }
-    .history .item{
-      background:var(--panel-2); border:1px solid rgba(255,255,255,.06);
-      padding:8px 10px; border-radius:10px; display:flex; justify-content:space-between; gap:8px; font-size:13px;
-      align-items:center;
-    }
-
-    .ads{
-      background:#0a0f20; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px;
-      color:var(--muted); font-size:12px; text-align:center;
-    }
-    .ads strong{color:#d1d5db;}
-
-    .note{
-      font-size:12px; color:var(--muted); line-height:1.6;
-      background:transparent; padding:0 4px;
-    }
-
-    /* レア演出 */
-    .confetti{
-      position:absolute; inset:-20% -10% auto -10%; height:140%;
-      pointer-events:none; opacity:0; transition:opacity .25s ease;
-      background:
-        radial-gradient(6px 10px at 10% 10%, #fff 40%, transparent 41%),
-        radial-gradient(6px 10px at 30% 20%, #67e8f9 40%, transparent 41%),
-        radial-gradient(6px 10px at 60% 30%, #ffd166 40%, transparent 41%),
-        radial-gradient(6px 10px at 80% 10%, #ff7ab6 40%, transparent 41%),
-        radial-gradient(6px 10px at 20% 60%, #a78bfa 40%, transparent 41%),
-        radial-gradient(6px 10px at 70% 70%, #34d399 40%, transparent 41%);
-      animation: fall 1.6s linear infinite;
-      mix-blend-mode: screen;
-    }
-    .confetti.show{opacity:.9;}
-
-    @keyframes fall{
-      0%{transform:translateY(-10%) rotate(0deg);}
-      100%{transform:translateY(10%) rotate(10deg);}
-    }
-
-    @media (max-width:720px){
-      .controls{grid-template-columns:1fr;}
-      .share{grid-template-columns:1fr;}
-      header{position:static;}
+    .button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(90deg,#5a8dee,#3ad29f);
+      border-radius: 10px;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      margin-top: 20px;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <div class="title">株ガチャ 未来予測シミュレーター</div>
-        <div class="sub">ワンタップで運試し → 未来株価レア度が出るMVP</div>
-      </div>
-      <div class="sub" id="rollCount">総ガチャ回数: 0</div>
-    </header>
 
-    <div class="ads">
-      <strong>広告枠（上）</strong><br/>
-      ※ ここに AdSense / アフィ広告コードを貼り付け
+  <div class="container">
+    <h2>株ガチャ 未来予測シミュレーター</h2>
+    <p>ワンタップで運試し → 未来株価をレア度付きで表示するMVP</p>
+
+    <!-- 広告枠（上） -->
+    <div class="ad-box">
+      広告枠（AdSense 審査用）
     </div>
 
-    <section class="controls">
-      <div class="control">
-        <label>時間軸</label>
-        <select id="years">
-          <option value="1">1年</option>
-          <option value="3">3年</option>
-          <option value="5">5年</option>
-          <option value="10" selected>10年</option>
-        </select>
-      </div>
+    <!-- フォーム UI -->
+    <div>
+      <label>時間軸：</label><br>
+      <select id="years">
+        <option value="1">1年</option>
+        <option value="5">5年</option>
+        <option value="10" selected>10年</option>
+      </select>
+      <br><br>
 
-      <div class="control">
-        <label>シナリオ</label>
-        <select id="scenario">
-          <option value="optimistic">楽観</option>
-          <option value="realistic" selected>現実</option>
-          <option value="pessimistic">悲観</option>
-        </select>
-      </div>
-    </section>
-
-    <section class="gacha-area">
-      <div class="confetti" id="confetti"></div>
-      <button class="roll-btn" id="rollBtn">ガチャを回す</button>
-
-      <div class="result" id="result">
-        <div class="note">「回す」を押すと、銘柄・未来価格・CAGR・レア度が一発で出ます。</div>
-      </div>
-
-      <div class="share">
-        <button id="shareX">Xでシェア</button>
-        <button id="shareLine">LINEでシェア</button>
-        <button id="copyText">結果文をコピー</button>
-      </div>
-
-      <div class="note" id="hint">
-        SSR+ 以上が出たらスクショ推奨。何回でも回せます。
-      </div>
-    </section>
-
-    <section class="history">
-      <div class="title" style="font-weight:800;">直近の履歴（最大10件）</div>
-      <div id="historyList"></div>
-    </section>
-
-    <div class="ads">
-      <strong>広告枠（下）</strong><br/>
-      ※ 結果の余韻の直後に当たる最重要枠
+      <label>シナリオ：</label><br>
+      <select id="scenario">
+        <option value="optimistic">楽観</option>
+        <option value="real" selected>現実</option>
+        <option value="pessimistic">悲観</option>
+      </select>
     </div>
 
-    <div class="note">
-      免責:本ツールは娯楽・学習目的のシミュレーションです。投資判断は自己責任で行ってください。
+    <button class="button" onclick="spinGacha()">ガチャを回す</button>
+
+    <div id="result" style="margin-top:20px; font-size:18px;"></div>
+
+    <!-- 広告枠（下） -->
+    <div class="ad-box">
+      広告枠（AdSense 審査用）
     </div>
+
+    <p style="margin-top:40px;">
+      <a href="privacy.html" style="color:#7c5cff;">プライバシーポリシー</a> /
+      <a href="disclaimer.html" style="color:#7c5cff;">免責事項</a>
+    </p>
   </div>
 
-<script>
-(()=>{
-  const stocks = [
-    {symbol:"AAPL",name:"Apple",base:190},
-    {symbol:"MSFT",name:"Microsoft",base:420},
-    {symbol:"AMZN",name:"Amazon",base:170},
-    {symbol:"NVDA",name:"NVIDIA",base:140},
-    {symbol:"TSLA",name:"Tesla",base:250},
-    {symbol:"GOOG",name:"Alphabet",base:175},
-    {symbol:"META",name:"Meta",base:500},
-    {symbol:"V",name:"Visa",base:280},
-    {symbol:"JPM",name:"JPMorgan",base:210},
-    {symbol:"KO",name:"Coca-Cola",base:60}
-  ];
+  <script>
+    function spinGacha() {
+      const years = document.getElementById("years").value;
+      const scenario = document.getElementById("scenario").value;
 
-  const rarities = [
-    {key:"R",label:"R",prob:0.7,min:-10,max:20,cls:"R"},
-    {key:"SR",label:"SR",prob:0.2,min:20,max:100,cls:"SR"},
-    {key:"SSR",label:"SSR",prob:0.08,min:100,max:300,cls:"SSR"},
-    {key:"SSR+",label:"SSR+",prob:0.015,min:300,max:1000,cls:"SSRp"},
-    {key:"SSR++",label:"SSR++",prob:0.005,min:1000,max:1600,cls:"SSRpp"}
-  ];
+      const rarity = ["R","SR","SSR"];
+      const pick = rarity[Math.floor(Math.random() * rarity.length)];
 
-  const yearsEl = document.getElementById("years");
-  const scenarioEl = document.getElementById("scenario");
-  const rollBtn = document.getElementById("rollBtn");
-  const resultEl = document.getElementById("result");
-  const historyEl = document.getElementById("historyList");
-  const rollCountEl = document.getElementById("rollCount");
-  const confettiEl = document.getElementById("confetti");
-
-  const shareX = document.getElementById("shareX");
-  const shareLine = document.getElementById("shareLine");
-  const copyText = document.getElementById("copyText");
-
-  let shareContent = "";
-  let totalRolls = Number(localStorage.getItem("rollCount") || 0);
-
-  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
-
-  function pickRarity(){
-    const r = Math.random();
-    let cum = 0;
-    for(const a of rarities){
-      cum += a.prob;
-      if(r <= cum) return a;
-    }
-    return rarities[0];
-  }
-
-  function loadHistory(){
-    let h = [];
-    try{ h = JSON.parse(localStorage.getItem("history") || "[]"); }catch(e){}
-    historyEl.innerHTML = "";
-    if(!h.length){
-      historyEl.innerHTML = '<div class="note">まだ履歴がありません。</div>';
-      return;
-    }
-    h.forEach( row => {
-      const div = document.createElement("div");
-      div.className = "item";
-      div.innerHTML = `
-        <div><strong>${row.rarity}</strong> ${row.symbol}
-        <span style="color:var(--muted)">(${row.years}年/${row.scenarioJP})</span></div>
-        <div class="${row.totalReturnPct>=0?"pos":"neg"}">${fmtPct(row.totalReturnPct)}</div>
-      `;
-      historyEl.appendChild(div);
-    });
-  }
-
-  function fmtPct(v){return (v>=0?"+":"") + v.toFixed(1) + "%";}
-
-  function loadHistoryArr(){
-    try{return JSON.parse(localStorage.getItem("history")||"[]");}
-    catch(e){return [];}
-  }
-
-  function saveHistory(arr){
-    localStorage.setItem("history", JSON.stringify(arr.slice(0,10)));
-  }
-
-  function roll(){
-    const yrs = Number(yearsEl.value);
-    const scenario = scenarioEl.value;
-
-    const scenarioJP =
-      scenario==="optimistic" ? "楽観" :
-      scenario==="pessimistic" ? "悲観" : "現実";
-
-    const stock = pick(stocks);
-    const rarity = pickRarity();
-
-    let u = Math.random();
-    if(scenario==="optimistic") u = Math.sqrt(u);
-    else if(scenario==="pessimistic") u = u*u;
-
-    const totalReturn = rarity.min + u*(rarity.max - rarity.min);
-    const base = stock.base;
-    const future = base*(1+totalReturn/100);
-
-    const cagr = ( Math.pow(1+totalReturn/100, 1/yrs) - 1 ) * 100;
-    const futureValue = 1000000*(1+totalReturn/100);
-
-    resultEl.innerHTML = `
-      <div class="row">
-        <div class="k">銘柄</div>
-        <div class="v big">${stock.symbol}
-          <span style="font-size:12px;color:var(--muted);font-weight:600;">${stock.name}</span>
+      const result = `
+        <div>
+          <strong>${pick}</strong><br>
+          時間軸：${years}年<br>
+          シナリオ：${scenario}<br>
+          ※ダミー計算（MVP版）
         </div>
-      </div>
+      `;
 
-      <div class="row">
-        <div class="k">時間軸 / シナリオ</div>
-        <div class="v">${yrs}年 / ${scenarioJP}</div>
-      </div>
+      document.getElementById("result").innerHTML = result;
 
-      <div class="row">
-        <div class="k">レアリティ</div>
-        <div class="v"><span class="rarity-badge ${rarity.cls}">${rarity.label}</span></div>
-      </div>
-
-      <hr style="border:0;border-top:1px solid rgba(255,255,255,.06)"/>
-
-      <div class="row"><div class="k">想定現在株価（仮）</div><div class="v">$${base.toFixed(2)}</div></div>
-      <div class="row"><div class="k">想定未来株価</div><div class="v">$${future.toFixed(2)}</div></div>
-
-      <div class="row">
-        <div class="k">トータルリターン</div>
-        <div class="v ${totalReturn>=0?"pos":"neg"}">${fmtPct(totalReturn)}</div>
-      </div>
-
-      <div class="row">
-        <div class="k">CAGR（年平均）</div>
-        <div class="v ${cagr>=0?"pos":"neg"}">${fmtPct(cagr)}</div>
-      </div>
-
-      <div class="row">
-        <div class="k">投資100万円の未来価値</div>
-        <div class="v">${Math.round(futureValue).toLocaleString("ja-JP")} 円</div>
-      </div>
-
-      <div class="note" style="margin-top:6px;">
-        ※ レア確率に基づく"運試しシミュレーション"。現実の株価とは無関係です。
-      </div>
-    `;
-
-    if(rarity.key==="SSR+" || rarity.key==="SSR++"){
-      confettiEl.classList.add("show");
-      setTimeout(()=>confettiEl.classList.remove("show"),1400);
+      // 計測用
+      gtag('event', 'gacha_spin', {
+        value: years + "_" + scenario + "_" + pick
+      });
     }
-
-    shareContent = [
-      `【株ガチャ結果】`,
-      `${stock.symbol} / ${yrs}年 / ${scenarioJP}`,
-      `レア: ${rarity.label}`,
-      `未来リターン: ${fmtPct(totalReturn)}`,
-      `CAGR: ${fmtPct(cagr)}`,
-      `投資100万→ ${Math.round(futureValue).toLocaleString("ja-JP")}円`,
-      `#株ガチャ #未来予測 #投資シミュレーション`
-    ].join("\n");
-
-    const history = loadHistoryArr();
-    history.unshift({
-      symbol:stock.symbol,
-      years:yrs,
-      scenarioJP,
-      rarity:rarity.label,
-      totalReturnPct:totalReturn
-    });
-    saveHistory(history);
-    loadHistory();
-
-    totalRolls++;
-    localStorage.setItem("rollCount", totalRolls);
-    rollCountEl.textContent = `総ガチャ回数: ${totalRolls}`;
-
-    rollBtn.disabled = true;
-    setTimeout(()=> rollBtn.disabled = false, 350);
-  }
-
-  rollBtn.addEventListener("click", roll);
-
-  shareX.addEventListener("click", ()=>{
-    if(!shareContent) return;
-    const url = encodeURIComponent(location.href);
-    const text = encodeURIComponent(shareContent);
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
-  });
-
-  shareLine.addEventListener("click", ()=>{
-    if(!shareContent) return;
-    const url = encodeURIComponent(location.href);
-    const text = encodeURIComponent(shareContent);
-    window.open(`https://social-plugins.line.me/lineit/share?url=${url}&text=${text}`, "_blank");
-  });
-
-  copyText.addEventListener("click", async ()=>{
-    if(!shareContent) return;
-    try{
-      await navigator.clipboard.writeText(shareContent);
-      copyText.textContent = "コピーしました";
-      setTimeout(()=> copyText.textContent = "結果文をコピー", 1200);
-    }catch(e){
-      alert("コピーに失敗しました。手動で選択してください。");
-    }
-  });
-
-  rollCountEl.textContent = `総ガチャ回数: ${totalRolls}`;
-  loadHistory();
-})();
-</script>
+  </script>
 
 </body>
 </html>
